@@ -1,0 +1,58 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment Variables & Secrets (Keep .env.example tracked)
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Data & Persistence Directories (Keep structure via .gitkeep)
+backend/data/indices/chroma/
+backend/data/indices/bm25/
+backend/data/processed/
+!backend/data/raw/.gitkeep
+!backend/data/processed/.gitkeep
+!backend/data/indices/.gitkeep
+!backend/data/evaluation/.gitkeep
+
+# Evaluation Results & Reports
+evaluation_results.json
+evaluation_report.md
+
+# Hugging Face & Torch Model Cache
+.cache/
+models/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node & Next.js (for future frontend)
+node_modules/
+.next/
+out/
+build/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Operating System & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
