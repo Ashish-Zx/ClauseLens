@@ -5,6 +5,8 @@ from backend.src.schemas.document import (
     DocumentChunk,
     DocumentMetadata,
     ElementType,
+    ParsedDocument,
+    ParsedElement,
 )
 from backend.src.schemas.query import (
     Citation,
@@ -20,6 +22,8 @@ __all__ = [
     "DocumentChunk",
     "DocumentMetadata",
     "ElementType",
+    "ParsedDocument",
+    "ParsedElement",
     "QueryRequest",
     "RAGResponse",
     "RetrievalTelemetry",

@@ -50,6 +50,36 @@ class DocumentMetadata(BaseModel):
     )
 
 
+class ParsedElement(BaseModel):
+    """An individual layout element extracted by Docling."""
+
+    model_config = ConfigDict(frozen=True)
+
+    element_type: ElementType = Field(..., description="Layout classification")
+    content: str = Field(..., description="Raw text or formatted Markdown table")
+    page_number: int = Field(..., ge=1, description="1-indexed page number")
+    section_path: str = Field(
+        default="Root",
+        description="Hierarchical section path (e.g. Article 8 > 8.3)",
+    )
+    bounding_box: BoundingBox | None = Field(
+        default=None,
+        description="Bounding coordinates on page",
+    )
+
+
+class ParsedDocument(BaseModel):
+    """Container for parsed elements and document metadata."""
+
+    model_config = ConfigDict(frozen=True)
+
+    metadata: DocumentMetadata = Field(..., description="Document metadata")
+    elements: list[ParsedElement] = Field(
+        default_factory=list,
+        description="Ordered sequence of extracted layout elements",
+    )
+
+
 class DocumentChunk(BaseModel):
     """An atomic text or table chunk with contextual breadcrumb lineage."""
 
