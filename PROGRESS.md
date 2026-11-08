@@ -12,9 +12,9 @@ This document tracks all completed features, active work, and planned milestones
 | **Phase 2** | Docling Layout Ingestion & Contextual Chunker | **Completed** |
 | **Phase 3** | Dual Indexing (ChromaDB + BM25) & Hybrid Search (RRF + Reranker) | **Completed** |
 | **Phase 4** | Grounded Generation & Citation Extraction | **Completed** |
-| **Phase 5** | FastAPI REST Endpoints | **Next Up** |
-| **Phase 6** | Ragas Evaluation Suite & Quality CI Gate | Pending |
-| **Phase 7** | Next.js 15 Frontend (App Router, PDF Viewer, Diff Studio) | Pending |
+| **Phase 5** | FastAPI REST Endpoints | **Completed** |
+| **Phase 6** | Ragas Evaluation Suite & Quality CI Gate | **Completed** |
+| **Phase 7** | Next.js 15 Frontend (App Router, PDF Viewer, Diff Studio) | **Next Up** |
 
 ---
 
@@ -153,10 +153,72 @@ This document tracks all completed features, active work, and planned milestones
 
 ---
 
-## Next Up: Phase 5 - FastAPI REST Endpoints
+## Detailed Log: Phase 5 - FastAPI REST Endpoints
 
-- **Target Files**:
-  1. `backend/src/api/routes/documents.py`: Document upload, Docling parsing, chunk inspection.
-  2. `backend/src/api/routes/query.py`: Hybrid search, grounded Q&A, and contract comparison endpoints.
-  3. `backend/src/api/main.py`: FastAPI application entrypoint with CORS and custom exception handlers.
+### 1. Document Ingestion Router
+- **File**: `backend/src/api/routes/documents.py`
+- **What it does**:
+  - `POST /api/documents/upload`: Accepts PDF multipart upload, runs Docling layout parsing + table extraction, contextual chunking, and atomic dual-indexing.
+  - `GET /api/documents/stats`: Returns current vector count in ChromaDB and keyword chunk count in BM25.
+  - `GET /api/documents/{chunk_id}`: Retrieves specific chunk metadata, breadcrumbs, and bounding box coordinates for inspection.
+
+### 2. Hybrid Query & Comparison Router
+- **File**: `backend/src/api/routes/query.py`
+- **What it does**:
+  - `POST /api/query/search`: Returns top precision-ranked chunks from the two-stage hybrid retriever with complete telemetry (Dense, BM25, RRF, Cross-Encoder).
+  - `POST /api/query/ask`: Executes end-to-end grounded Q&A, returning synthesized Markdown answers with inline citations `[1]`, `[2]` and hydrated bounding boxes.
+  - `POST /api/query/compare`: Produces a side-by-side Markdown comparison matrix across multiple uploaded agreements.
+
+### 3. Application Entrypoint & Middleware
+- **File**: `backend/src/api/main.py`
+- **What it does**:
+  - Configures CORS middleware for frontend communication.
+  - Centralizes domain exception handling for `ClauseLensError` into clean JSON responses.
+  - Exposes `GET /health` monitoring endpoint.
+- **Test File**: `backend/tests/test_api.py`
+  - Integration tests for `/health`, `/api/documents/stats`, and Pydantic request validation.
+
+---
+
+## Detailed Log: Phase 6 - Ragas Evaluation Suite & CI Gate
+
+### 1. Curated Golden Benchmark Dataset
+- **File**: `backend/data/evaluation/golden_dataset.json`
+- **What it does**:
+  - Curated test set of legal and contract question-answer pairs with expected context keywords, section hierarchies, and target document names.
+
+### 2. Dataset Builder & Validator
+- **File**: `backend/src/evaluation/dataset_builder.py`
+- **What it does**:
+  - `GoldenTestCase`: Pydantic schema validating test questions and ground-truth references.
+  - `load_golden_dataset()`: Parses and validates benchmark files.
+  - `build_evaluation_payload()`: Formats question, answer, retrieved contexts, and ground truths into the Hugging Face / Ragas evaluation schema.
+
+### 3. Ragas Evaluator & Scorecard Exporter
+- **File**: `backend/src/evaluation/ragas_runner.py`
+- **What it does**:
+  - Evaluates pipeline retrieval and generation across the 4 core metrics:
+    1. Context Precision (`>= 0.85`)
+    2. Context Recall (`>= 0.85`)
+    3. Faithfulness (`>= 0.92`)
+    4. Answer Relevancy (`>= 0.85`)
+  - Exports `evaluation_results.json` and `evaluation_report.md` Markdown scorecard.
+  - Returns exit code `0` on pass and `1` on fail for CI pipelines.
+- **Test File**: `backend/tests/test_evaluation.py`
+  - Verifies golden dataset loading, metric models, and gate threshold checks.
+
+### 4. Automated CI Workflow
+- **File**: `.github/workflows/ragas_eval_ci.yml`
+- **What it does**:
+  - GitHub Actions workflow that automatically runs unit tests and executes `ragas_runner.py` on PRs and commits to `main`, saving the scorecard artifacts.
+
+---
+
+## Next Up: Phase 7 - Next.js 15 Frontend (App Router, PDF Viewer, Diff Studio)
+
+- **Target Modules**:
+  1. Frontend project scaffolding (`frontend/package.json`, Tailwind CSS, TypeScript).
+  2. PDF Bounding-Box Viewer with interactive highlight overlays.
+  3. Explainable Search & Citation Drawer (Dense vs BM25 vs RRF vs Reranker telemetry).
+  4. Contract Diff & Matrix Studio.
 
