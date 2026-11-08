@@ -50,30 +50,62 @@ class RawLLMOutput(BaseModel):
 
 
 class GroundedGenerator:
-    """Production grounded generator supporting Gemini and OpenAI structured outputs."""
+    """Production grounded generator supporting Inception AI (Mercury-3), Gemini, and Groq."""
 
     def __init__(self) -> None:
         """Initialize generator with API keys from application settings."""
         self.settings = get_settings()
+        self._inception_client: Any = None
         self._gemini_client: Any = None
+        self._groq_client: Any = None
         self._openai_client: Any = None
         self._init_clients()
 
     def _init_clients(self) -> None:
-        """Initialize available LLM provider clients."""
-        # Check Gemini API
-        api_key = self.settings.gemini_api_key or os.getenv("GEMINI_API_KEY")
-        if api_key:
+        """Initialize available LLM provider clients in priority order."""
+        # 1. Inception AI (Mercury-3)
+        inception_key = self.settings.inception_api_key or os.getenv("INCEPTION_API_KEY")
+        if inception_key:
+            try:
+                from openai import OpenAI
+                self._inception_client = OpenAI(
+                    api_key=inception_key,
+                    base_url=self.settings.inception_base_url,
+                )
+                logger.info(
+                    "Initialized Inception AI client with model '%s' at %s",
+                    self.settings.inception_model,
+                    self.settings.inception_base_url,
+                )
+            except Exception as exc:
+                logger.warning("Could not initialize Inception AI client: %s", exc)
+
+        # 2. Google Gemini
+        gemini_key = self.settings.gemini_api_key or os.getenv("GEMINI_API_KEY")
+        if gemini_key:
             try:
                 from google import genai
-                self._gemini_client = genai.Client(api_key=api_key)
-                logger.info("Initialized Google GenAI Gemini client for GroundedGenerator")
+                self._gemini_client = genai.Client(api_key=gemini_key)
+                logger.info("Initialized Google GenAI Gemini client (model: %s)", self.settings.gemini_model)
             except Exception as exc:
                 logger.warning("Could not initialize google-genai client: %s", exc)
 
-        # Check OpenAI API
+        # 3. Groq (Fast backup)
+        groq_key = self.settings.groq_api_key or os.getenv("GROQ_API_KEY")
+        if groq_key:
+            try:
+                from openai import OpenAI
+                self._groq_client = OpenAI(
+                    api_key=groq_key,
+                    base_url="https://api.groq.com/openai/v1",
+                )
+                logger.info("Initialized Groq client (model: %s)", self.settings.groq_model)
+            except Exception as exc:
+                logger.warning("Could not initialize Groq client: %s", exc)
+
+        # 4. Standard OpenAI
         openai_key = self.settings.openai_api_key or os.getenv("OPENAI_API_KEY")
-        if openai_key and not self._gemini_client:
+        if openai_key and not self._inception_client and not self._gemini_client:
             try:
                 from openai import OpenAI
                 self._openai_client = OpenAI(api_key=openai_key)
@@ -177,12 +209,38 @@ class GroundedGenerator:
         )
 
     def _call_llm(self, system_prompt: str, user_prompt: str) -> RawLLMOutput:
-        """Call Gemini or OpenAI API with structured output schema, or use local fallback."""
-        # 1. Try Gemini
+        """Call Inception AI (Mercury-3), Gemini, or Groq with structured JSON output."""
+        # 1. Inception AI (Mercury-3)
+        if self._inception_client:
+            try:
+                logger.info("Generating grounded response with Inception AI model '%s'...", self.settings.inception_model)
+                json_instruction = (
+                    "\n\nCRITICAL: Respond ONLY with a valid JSON object matching this schema:\n"
+                    "{\n"
+                    '  "answer": "Synthesized text with inline citations [1], [2]",\n'
+                    '  "citations": [{"citation_id": 1, "chunk_id": "...", "verbatim_quote": "..."}],\n'
+                    '  "unanswerable_reason": null\n'
+                    "}"
+                )
+                completion = self._inception_client.chat.completions.create(
+                    model=self.settings.inception_model,
+                    messages=[
+                        {"role": "system", "content": f"{system_prompt}{json_instruction}"},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    temperature=0.0,
+                )
+                raw_text = completion.choices[0].message.content or ""
+                return self._parse_json_safely(raw_text)
+            except Exception as exc:
+                logger.warning("Inception AI generation failed: %s. Falling back to Gemini/Groq...", exc)
+
+        # 2. Google Gemini
         if self._gemini_client:
             try:
+                logger.info("Generating response with Gemini (%s)...", self.settings.gemini_model)
                 response = self._gemini_client.models.generate_content(
-                    model="gemini-2.5-flash",
+                    model=self.settings.gemini_model,
                     contents=user_prompt,
                     config={
                         "system_instruction": system_prompt,
@@ -194,9 +252,27 @@ class GroundedGenerator:
                 if response.text:
                     return RawLLMOutput.model_validate_json(response.text)
             except Exception as exc:
-                logger.warning("Gemini generation failed: %s. Trying OpenAI or fallback...", exc)
+                logger.warning("Gemini generation failed: %s. Trying Groq or fallback...", exc)
 
-        # 2. Try OpenAI
+        # 3. Groq
+        if self._groq_client:
+            try:
+                logger.info("Generating response with Groq (%s)...", self.settings.groq_model)
+                completion = self._groq_client.chat.completions.create(
+                    model=self.settings.groq_model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    response_format={"type": "json_object"},
+                    temperature=0.0,
+                )
+                raw_text = completion.choices[0].message.content or ""
+                return self._parse_json_safely(raw_text)
+            except Exception as exc:
+                logger.warning("Groq generation failed: %s. Using local synthesis fallback...", exc)
+
+        # 4. Standard OpenAI
         if self._openai_client:
             try:
                 completion = self._openai_client.beta.chat.completions.parse(
@@ -214,8 +290,22 @@ class GroundedGenerator:
             except Exception as exc:
                 logger.warning("OpenAI generation failed: %s. Using local synthesis fallback...", exc)
 
-        # 3. Deterministic Local Fallback (for testing / offline development)
+        # 5. Deterministic Local Fallback (for testing / offline development)
         return self._local_fallback_synthesis(user_prompt)
+
+    def _parse_json_safely(self, text: str) -> RawLLMOutput:
+        """Parse structured LLM output, extracting JSON from markdown code fences if present."""
+        clean = text.strip()
+        if "```json" in clean:
+            clean = clean.split("```json")[1].split("```")[0].strip()
+        elif "```" in clean:
+            clean = clean.split("```")[1].split("```")[0].strip()
+
+        try:
+            return RawLLMOutput.model_validate_json(clean)
+        except Exception:
+            data = json.loads(clean)
+            return RawLLMOutput.model_validate(data)
 
     def _local_fallback_synthesis(self, user_prompt: str) -> RawLLMOutput:
         """Deterministic synthesis used when LLM API keys are not configured in environment."""

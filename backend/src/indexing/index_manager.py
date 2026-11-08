@@ -33,12 +33,24 @@ class IndexManager:
         # Load persisted BM25 index from disk if present
         self.bm25_persist_dir = settings.bm25_persist_dir
         self.sparse_store.load(self.bm25_persist_dir)
+        final_file = Path(self.bm25_persist_dir).resolve() / "bm25_store.pkl"
+        self._last_bm25_mtime = final_file.stat().st_mtime if final_file.exists() else 0.0
 
         logger.info(
             "IndexManager ready: Dense vectors=%d, BM25 chunks=%d",
             self.dense_store.total_chunks,
             self.sparse_store.total_chunks,
         )
+
+    def reload_sparse_store_if_needed(self) -> None:
+        """Reload BM25 store if on-disk store has updated or in-memory is empty."""
+        final_file = Path(self.bm25_persist_dir).resolve() / "bm25_store.pkl"
+        if final_file.exists():
+            mtime = final_file.stat().st_mtime
+            if mtime > getattr(self, "_last_bm25_mtime", 0.0) or self.sparse_store.total_chunks == 0:
+                logger.info("Reloading BM25 store from disk (mtime changed: %s > %s)", mtime, getattr(self, "_last_bm25_mtime", 0.0))
+                self.sparse_store.load(self.bm25_persist_dir)
+                self._last_bm25_mtime = mtime
 
     def index_chunks(self, chunks: Iterable[DocumentChunk]) -> None:
         """Atomically index chunks into both ChromaDB and BM25 stores.
@@ -86,7 +98,19 @@ class IndexManager:
 
     def stats(self) -> dict[str, int]:
         """Return counts of indexed elements across stores."""
+        self.reload_sparse_store_if_needed()
         return {
             "dense_count": self.dense_store.total_chunks,
             "sparse_count": self.sparse_store.total_chunks,
         }
+
+
+_shared_index_manager: IndexManager | None = None
+
+
+def get_shared_index_manager() -> IndexManager:
+    """Return process-wide singleton IndexManager to prevent index divergence."""
+    global _shared_index_manager
+    if _shared_index_manager is None:
+        _shared_index_manager = IndexManager()
+    return _shared_index_manager

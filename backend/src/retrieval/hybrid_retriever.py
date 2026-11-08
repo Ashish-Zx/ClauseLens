@@ -9,7 +9,7 @@ import time
 
 from backend.src.config import get_settings
 from backend.src.exceptions import RetrievalError
-from backend.src.indexing.index_manager import IndexManager
+from backend.src.indexing.index_manager import IndexManager, get_shared_index_manager
 from backend.src.retrieval.reranker import CrossEncoderReranker
 from backend.src.retrieval.rrf import compute_rrf
 from backend.src.schemas.query import RetrievalTelemetry, ScoredChunk
@@ -27,7 +27,7 @@ class HybridRetriever:
     ) -> None:
         """Initialize the hybrid retriever with index manager and reranker."""
         self.settings = get_settings()
-        self.index_manager = index_manager or IndexManager()
+        self.index_manager = index_manager or get_shared_index_manager()
         self.reranker = reranker or CrossEncoderReranker()
 
     def retrieve(
@@ -59,6 +59,9 @@ class HybridRetriever:
         final_k = top_k or self.settings.top_k_final
 
         try:
+            # Ensure in-memory BM25 store reflects latest on-disk changes
+            self.index_manager.reload_sparse_store_if_needed()
+
             logger.info("Executing hybrid search for query: '%s' (doc_scope=%s)", query, doc_ids)
 
             # Stage 1: Dense Vector Retrieval

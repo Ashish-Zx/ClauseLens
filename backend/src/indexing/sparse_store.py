@@ -85,11 +85,15 @@ class SparseBM25Store:
             return
 
         for chunk in new_chunks:
-            self._chunks[chunk.chunk_id] = chunk
-            self._corpus_ids.append(chunk.chunk_id)
-            # Tokenize using the full contextualized content (including headers)
-            tokens = legal_tokenizer(chunk.contextualized_content)
-            self._tokenized_corpus.append(tokens)
+            if chunk.chunk_id in self._chunks:
+                idx = self._corpus_ids.index(chunk.chunk_id)
+                self._chunks[chunk.chunk_id] = chunk
+                self._tokenized_corpus[idx] = legal_tokenizer(chunk.contextualized_content)
+            else:
+                self._chunks[chunk.chunk_id] = chunk
+                self._corpus_ids.append(chunk.chunk_id)
+                tokens = legal_tokenizer(chunk.contextualized_content)
+                self._tokenized_corpus.append(tokens)
 
         # Re-initialize BM25Plus model with updated corpus
         self._bm25 = BM25Plus(self._tokenized_corpus)

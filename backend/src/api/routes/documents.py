@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from backend.src.exceptions import DocumentParsingError, IndexSyncError
 from backend.src.ingestion.contextual_chunker import ContextualChunker
 from backend.src.ingestion.docling_parser import DoclingParser
-from backend.src.indexing.index_manager import IndexManager
+from backend.src.indexing.index_manager import IndexManager, get_shared_index_manager
 from backend.src.schemas.document import DocumentChunk, ElementType
 
 logger = logging.getLogger(__name__)
@@ -39,10 +39,7 @@ def get_chunker() -> ContextualChunker:
 
 
 def get_index_manager() -> IndexManager:
-    global _index_manager
-    if _index_manager is None:
-        _index_manager = IndexManager()
-    return _index_manager
+    return get_shared_index_manager()
 
 
 class IngestionResponse(BaseModel):

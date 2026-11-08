@@ -37,8 +37,23 @@ class Settings(BaseSettings):
     top_n_rerank: int = 15
     top_k_final: int = 5
 
-    # API Keys for LLM Generation (optional during local testing)
+    # LLM Provider Configuration
+    llm_provider: str = "inception"  # "inception", "gemini", or "groq"
+
+    # Inception AI (Mercury-3)
+    inception_api_key: str | None = None
+    inception_base_url: str = "https://api.inceptionlabs.ai/v1"
+    inception_model: str = "mercury-3"
+
+    # Google Gemini
     gemini_api_key: str | None = None
+    gemini_model: str = "gemini-2.5-flash"
+
+    # Groq (optional backup)
+    groq_api_key: str | None = None
+    groq_model: str = "llama-3.3-70b-versatile"
+
+    # Legacy OpenAI fallback
     openai_api_key: str | None = None
 
 
