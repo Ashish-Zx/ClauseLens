@@ -9,8 +9,8 @@ This document tracks all completed features, active work, and planned milestones
 | Phase | Description | Status |
 | :--- | :--- | :--- |
 | **Phase 1** | Project Scaffolding, Config & Pydantic Schemas | **Completed** |
-| **Phase 2** | Docling Layout Ingestion & Contextual Chunker | **In Progress** |
-| **Phase 3** | Dual Indexing (ChromaDB + BM25) & Hybrid Search (RRF + Reranker) | Pending |
+| **Phase 2** | Docling Layout Ingestion & Contextual Chunker | **Completed** |
+| **Phase 3** | Dual Indexing (ChromaDB + BM25) & Hybrid Search (RRF + Reranker) | **Next Up** |
 | **Phase 4** | Grounded Generation & Citation Extraction | Pending |
 | **Phase 5** | FastAPI REST Endpoints | Pending |
 | **Phase 6** | Ragas Evaluation Suite & Quality CI Gate | Pending |
@@ -65,4 +65,26 @@ This document tracks all completed features, active work, and planned milestones
   - Tracks hierarchical document headers into breadcrumb section paths (`Article 8 > 8.3 Limitation of Liability`).
   - Extracts provenance coordinates (`BoundingBox`) for frontend PDF highlights.
   - Raises domain-specific `DocumentParsingError` on missing files or conversion failures.
+
+### 2. Contextual Boundary Chunker
+- **File**: `backend/src/ingestion/contextual_chunker.py`
+- **What it does**:
+  - Groups layout elements along structural section boundaries and page transitions instead of slicing arbitrary sentences mid-thought.
+  - Treats tables as first-class citizens: small tables remain atomic chunks; oversized tables are split cleanly row-by-row with table headers and markdown separator rows repeated on every sub-chunk.
+  - Prepends every chunk with standardized breadcrumbs (`[Document: ...] [Section: ...] ---`).
+  - Merges bounding boxes across aggregated elements for precise UI PDF overlays.
+- **Test File**: `backend/tests/test_chunker.py`
+  - Unit tests covering text grouping, section boundary splits, table header repetition, and deterministic chunk ID generation.
+
+---
+
+## Next Up: Phase 3 - Dual Indexing & Hybrid Search (Dense + BM25 + RRF + Cross-Encoder)
+
+- **Target Files**:
+  1. `backend/src/indexing/dense_store.py`: ChromaDB vector database wrapper with metadata filtering.
+  2. `backend/src/indexing/sparse_store.py`: BM25 lexical index with custom legal/code tokenizer.
+  3. `backend/src/indexing/index_manager.py`: Atomic dual-index synchronization.
+  4. `backend/src/retrieval/rrf.py`: Reciprocal Rank Fusion algorithm ($k=60$, 1-indexed ranks).
+  5. `backend/src/retrieval/reranker.py`: Cross-Encoder reranking module.
+  6. `backend/src/retrieval/hybrid_retriever.py`: End-to-end hybrid retrieval coordinator.
 
