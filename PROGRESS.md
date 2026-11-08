@@ -10,7 +10,7 @@ This document tracks all completed features, active work, and planned milestones
 | :--- | :--- | :--- |
 | **Phase 1** | Project Scaffolding, Config & Pydantic Schemas | **Completed** |
 | **Phase 2** | Docling Layout Ingestion & Contextual Chunker | **Completed** |
-| **Phase 3** | Dual Indexing (ChromaDB + BM25) & Hybrid Search (RRF + Reranker) | **Next Up** |
+| **Phase 3** | Dual Indexing (ChromaDB + BM25) & Hybrid Search (RRF + Reranker) | **In Progress** |
 | **Phase 4** | Grounded Generation & Citation Extraction | Pending |
 | **Phase 5** | FastAPI REST Endpoints | Pending |
 | **Phase 6** | Ragas Evaluation Suite & Quality CI Gate | Pending |
@@ -78,13 +78,35 @@ This document tracks all completed features, active work, and planned milestones
 
 ---
 
-## Next Up: Phase 3 - Dual Indexing & Hybrid Search (Dense + BM25 + RRF + Cross-Encoder)
+## Detailed Log: Phase 3 - Dual Indexing & Hybrid Search
+
+### 1. Reciprocal Rank Fusion (RRF)
+- **File**: `backend/src/retrieval/rrf.py`
+- **What it does**:
+  - Implements the exact 1-indexed RRF formula:
+    $$\text{RRF}(d) = \sum_{m \in \{\text{dense}, \text{bm25}\}} \frac{1}{k + \text{rank}_m(d)}$$
+    with $k = 60$.
+  - Preserves full telemetry (`dense_rank`, `bm25_rank`, `dense_score`, `bm25_score`, `rrf_score`).
+  - Converts intermediate ranking candidates into `RetrievalTelemetry` for frontend search explainability.
+- **Test File**: `backend/tests/test_rrf.py`
+  - Verifies exact reciprocal rank math, 1-indexed denominator checks, and telemetry mapping.
+
+### 2. BM25 Sparse Keyword Store & Legal Tokenizer
+- **File**: `backend/src/indexing/sparse_store.py`
+- **What it does**:
+  - `legal_tokenizer`: Uses a domain regex preserving section numbers (`11.4(b)`), hyphenated terms (`SOC-2`), currency amounts (`$1,500,000`), and percentages (`99.9%`).
+  - `SparseBM25Store`: BM25Okapi keyword search over contextualized chunks with optional `doc_ids` filtering.
+  - Disk persistence: Atomic save and load (`bm25_store.pkl`) to avoid re-parsing PDFs on server restart.
+- **Test File**: `backend/tests/test_sparse_store.py`
+  - Verifies token preservation, BM25 keyword matching, metadata filtering, and atomic disk persistence.
+
+---
+
+## Next Up: Phase 3 Remaining Components
 
 - **Target Files**:
-  1. `backend/src/indexing/dense_store.py`: ChromaDB vector database wrapper with metadata filtering.
-  2. `backend/src/indexing/sparse_store.py`: BM25 lexical index with custom legal/code tokenizer.
+  1. `backend/src/indexing/dense_store.py`: ChromaDB vector database wrapper with embedding model integration.
+  2. `backend/src/retrieval/reranker.py`: Cross-Encoder reranker (`cross-encoder/ms-marco-MiniLM-L-6-v2`).
   3. `backend/src/indexing/index_manager.py`: Atomic dual-index synchronization.
-  4. `backend/src/retrieval/rrf.py`: Reciprocal Rank Fusion algorithm ($k=60$, 1-indexed ranks).
-  5. `backend/src/retrieval/reranker.py`: Cross-Encoder reranking module.
-  6. `backend/src/retrieval/hybrid_retriever.py`: End-to-end hybrid retrieval coordinator.
+  4. `backend/src/retrieval/hybrid_retriever.py`: Hybrid search pipeline combining dense + sparse + RRF + reranking.
 
