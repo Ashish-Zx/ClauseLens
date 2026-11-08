@@ -15,9 +15,9 @@ def test_legal_tokenizer_preserves_identifiers() -> None:
     )
     tokens = legal_tokenizer(sample_text)
 
-    # Identifiers must be present in token list
+    # Identifiers must be present in token list (normalized lowercase)
     assert "11.4(b)" in tokens
-    assert "SOC-2" in tokens
+    assert "soc-2" in tokens
     assert "$1,500,000" in tokens
     assert "15%" in tokens
     assert "99.9%" in tokens

@@ -13,7 +13,7 @@ import pickle
 import re
 from typing import Any
 
-from rank_bm25 import BM25Okapi
+from rank_bm25 import BM25Plus
 
 from backend.src.exceptions import RetrievalError
 from backend.src.schemas.document import DocumentChunk
@@ -47,7 +47,7 @@ def legal_tokenizer(text: str) -> list[str]:
         text: Input raw or contextualized text.
 
     Returns:
-        List of normalized tokens preserving section numbers and compound words.
+        List of normalized lowercase tokens preserving section numbers and compound words.
     """
     raw_tokens = LEGAL_TOKEN_PATTERN.findall(text)
     tokens: list[str] = []
@@ -55,7 +55,7 @@ def legal_tokenizer(text: str) -> list[str]:
         clean = token.strip()
         lowered = clean.lower()
         if lowered not in ENGLISH_STOPWORDS and len(clean) > 0:
-            tokens.append(clean)  # Retain original case for section letters (e.g. 11.4(b))
+            tokens.append(lowered)
     return tokens
 
 
@@ -67,7 +67,7 @@ class SparseBM25Store:
         self._chunks: dict[str, DocumentChunk] = {}
         self._corpus_ids: list[str] = []
         self._tokenized_corpus: list[list[str]] = []
-        self._bm25: BM25Okapi | None = None
+        self._bm25: BM25Plus | None = None
 
     @property
     def total_chunks(self) -> int:
@@ -91,8 +91,8 @@ class SparseBM25Store:
             tokens = legal_tokenizer(chunk.contextualized_content)
             self._tokenized_corpus.append(tokens)
 
-        # Re-initialize BM25 model with updated corpus
-        self._bm25 = BM25Okapi(self._tokenized_corpus)
+        # Re-initialize BM25Plus model with updated corpus
+        self._bm25 = BM25Plus(self._tokenized_corpus)
         logger.info(
             "Indexed %d chunks into SparseBM25Store (total indexed: %d)",
             len(new_chunks),
@@ -124,10 +124,12 @@ class SparseBM25Store:
 
         scores = self._bm25.get_scores(query_tokens)
         doc_ids_set = set(doc_ids) if doc_ids else None
+        query_set = set(query_tokens)
 
         scored_candidates: list[tuple[str, float]] = []
-        for chunk_id, score in zip(self._corpus_ids, scores):
-            if score <= 0.0:
+        for chunk_id, tokens, score in zip(self._corpus_ids, self._tokenized_corpus, scores):
+            # Only include if score > 0 and chunk shares at least one query token
+            if score <= 0.0 or not query_set.intersection(tokens):
                 continue
 
             if doc_ids_set is not None:
@@ -190,7 +192,7 @@ class SparseBM25Store:
             self._tokenized_corpus = payload.get("tokenized_corpus", [])
 
             if self._tokenized_corpus:
-                self._bm25 = BM25Okapi(self._tokenized_corpus)
+                self._bm25 = BM25Plus(self._tokenized_corpus)
             else:
                 self._bm25 = None
 

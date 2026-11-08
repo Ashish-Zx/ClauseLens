@@ -27,8 +27,8 @@ class Settings(BaseSettings):
     reranker_model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
     # Persistence Directories
-    chroma_persist_dir: Path = Path("data/indices/chroma")
-    bm25_persist_dir: Path = Path("data/indices/bm25")
+    chroma_persist_dir: Path = Path("backend/data/indices/chroma")
+    bm25_persist_dir: Path = Path("backend/data/indices/bm25")
 
     # Retrieval Hyperparameters (Reciprocal Rank Fusion & Reranking)
     rrf_k: int = 60
