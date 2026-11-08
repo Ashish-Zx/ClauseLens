@@ -10,9 +10,9 @@ This document tracks all completed features, active work, and planned milestones
 | :--- | :--- | :--- |
 | **Phase 1** | Project Scaffolding, Config & Pydantic Schemas | **Completed** |
 | **Phase 2** | Docling Layout Ingestion & Contextual Chunker | **Completed** |
-| **Phase 3** | Dual Indexing (ChromaDB + BM25) & Hybrid Search (RRF + Reranker) | **In Progress** |
-| **Phase 4** | Grounded Generation & Citation Extraction | Pending |
-| **Phase 5** | FastAPI REST Endpoints | Pending |
+| **Phase 3** | Dual Indexing (ChromaDB + BM25) & Hybrid Search (RRF + Reranker) | **Completed** |
+| **Phase 4** | Grounded Generation & Citation Extraction | **Completed** |
+| **Phase 5** | FastAPI REST Endpoints | **Next Up** |
 | **Phase 6** | Ragas Evaluation Suite & Quality CI Gate | Pending |
 | **Phase 7** | Next.js 15 Frontend (App Router, PDF Viewer, Diff Studio) | Pending |
 
@@ -100,13 +100,63 @@ This document tracks all completed features, active work, and planned milestones
 - **Test File**: `backend/tests/test_sparse_store.py`
   - Verifies token preservation, BM25 keyword matching, metadata filtering, and atomic disk persistence.
 
+### 3. ChromaDB Dense Vector Store
+- **File**: `backend/src/indexing/dense_store.py`
+- **What it does**:
+  - Embeds contextualized chunks using `BAAI/bge-small-en-v1.5` via `SentenceTransformer`.
+  - Persists vectors to ChromaDB with metadata (`doc_id`, `filename`, `page_number`, `section_path`, `bounding_box`).
+  - Supports scoped semantic search filtered by `doc_ids` and converts cosine distance to similarity.
+
+### 4. Dual-Index Synchronization Manager
+- **File**: `backend/src/indexing/index_manager.py`
+- **What it does**:
+  - Coordinates atomic writes to both ChromaDB and BM25 stores using identical deterministic chunk IDs.
+  - Automatically loads and saves persisted BM25 pickle states.
+  - Raises `IndexSyncError` if write to either store fails.
+
+### 5. Cross-Encoder Reranker
+- **File**: `backend/src/retrieval/reranker.py`
+- **What it does**:
+  - Jointly scores `(query, chunk_context)` pairs using `cross-encoder/ms-marco-MiniLM-L-6-v2`.
+  - Preserves contextual breadcrumbs during scoring.
+  - Attaches `reranker_score` to candidate telemetry and selects top $K=5$ final chunks.
+
+### 6. Unified Hybrid Retrieval Engine
+- **File**: `backend/src/retrieval/hybrid_retriever.py`
+- **What it does**:
+  - Executes the complete two-stage hybrid pipeline:
+    1. Dense Vector Search ($K=25$)
+    2. BM25 Lexical Search ($K=25$)
+    3. Reciprocal Rank Fusion ($N=15$)
+    4. Cross-Encoder Reranking ($K=5$)
+  - Emits telemetry breakdown and latency diagnostics.
+
 ---
 
-## Next Up: Phase 3 Remaining Components
+## Detailed Log: Phase 4 - Grounded Generation & Citation Extraction
+
+### 1. Zero-Hallucination Prompts
+- **File**: `backend/src/generation/prompts.py`
+- **What it does**:
+  - `QA_SYSTEM_PROMPT`: Directs the model to rely exclusively on retrieved context chunks, enforce inline citations `[1]`, `[2]`, and populate `unanswerable_reason` if context is inadequate.
+  - `CONTRACT_COMPARISON_SYSTEM_PROMPT`: Builds multi-agreement Markdown comparison matrices with clause-by-clause diffs and risk assessment.
+  - `format_context_block()`: Formats candidate chunks cleanly demarcating document name, page, section breadcrumbs, and chunk IDs.
+
+### 2. Grounded Generator & Provenance Hydration
+- **File**: `backend/src/generation/generator.py`
+- **What it does**:
+  - Enforces structured Pydantic schema on LLM outputs (supporting Google GenAI Gemini and OpenAI).
+  - Automatically hydrates citations: matches `chunk_id` from the model back to the retrieved `ScoredChunk` to populate the exact source filename, page number, section breadcrumb path, and bounding box coordinates for frontend PDF highlighting.
+  - Includes local deterministic fallback synthesis for offline testing without requiring API keys.
+- **Test File**: `backend/tests/test_generation.py`
+  - Verifies context formatting, citation extraction, bounding box preservation, and telemetry mapping.
+
+---
+
+## Next Up: Phase 5 - FastAPI REST Endpoints
 
 - **Target Files**:
-  1. `backend/src/indexing/dense_store.py`: ChromaDB vector database wrapper with embedding model integration.
-  2. `backend/src/retrieval/reranker.py`: Cross-Encoder reranker (`cross-encoder/ms-marco-MiniLM-L-6-v2`).
-  3. `backend/src/indexing/index_manager.py`: Atomic dual-index synchronization.
-  4. `backend/src/retrieval/hybrid_retriever.py`: Hybrid search pipeline combining dense + sparse + RRF + reranking.
+  1. `backend/src/api/routes/documents.py`: Document upload, Docling parsing, chunk inspection.
+  2. `backend/src/api/routes/query.py`: Hybrid search, grounded Q&A, and contract comparison endpoints.
+  3. `backend/src/api/main.py`: FastAPI application entrypoint with CORS and custom exception handlers.
 
