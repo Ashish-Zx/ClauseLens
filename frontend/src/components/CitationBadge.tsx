@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Citation } from "@/types";
-import { BookOpen, ExternalLink } from "lucide-react";
+import { FileText } from "lucide-react";
 
 interface CitationBadgeProps {
   citation: Citation;
@@ -10,23 +10,39 @@ interface CitationBadgeProps {
   isActive?: boolean;
 }
 
-export function CitationBadge({ citation, onClick, isActive }: CitationBadgeProps) {
+export function CitationBadge({
+  citation,
+  onClick,
+  isActive,
+}: CitationBadgeProps) {
   return (
     <button
       onClick={() => onClick(citation)}
-      className={`inline-flex items-center gap-1 px-2 py-0.5 mx-0.5 rounded text-xs font-semibold transition cursor-pointer ${
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer border ${
         isActive
-          ? "bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-400"
-          : "bg-indigo-950/80 hover:bg-indigo-900 text-indigo-300 border border-indigo-800/80"
+          ? "bg-zinc-900 text-white border-zinc-900 shadow-xs"
+          : "bg-zinc-50 hover:bg-zinc-100 text-zinc-700 border-zinc-200/90 hover:border-zinc-300"
       }`}
       title={`${citation.doc_name} (Page ${citation.page_number}): "${citation.verbatim_quote}"`}
     >
-      <BookOpen className="w-3 h-3 text-indigo-400" />
-      <span>[{citation.citation_id}]</span>
-      <span className="text-[10px] text-indigo-400 font-normal hidden sm:inline">
+      <span
+        className={`font-mono text-[11px] font-semibold ${
+          isActive ? "text-zinc-200" : "text-zinc-900"
+        }`}
+      >
+        [{citation.citation_id}]
+      </span>
+      <FileText
+        className={`w-3 h-3 ${isActive ? "text-zinc-300" : "text-zinc-400"}`}
+      />
+      <span className="truncate max-w-[160px]">{citation.doc_name}</span>
+      <span
+        className={`font-mono text-[10px] px-1 py-0.2 rounded ${
+          isActive ? "bg-zinc-800 text-zinc-300" : "bg-zinc-200/70 text-zinc-600"
+        }`}
+      >
         p.{citation.page_number}
       </span>
     </button>
   );
 }
-

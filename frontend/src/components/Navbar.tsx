@@ -7,13 +7,12 @@ import {
   Search,
   GitCompare,
   BarChart3,
-  Database,
   Menu,
   X,
-  Sparkles,
+  Scale,
 } from "lucide-react";
 
-export type NavTab = "workspace" | "copilot" | "diff" | "observatory";
+export type NavTab = "copilot" | "workspace" | "diff" | "observatory";
 
 interface NavbarProps {
   activeTab: NavTab;
@@ -24,36 +23,37 @@ interface NavbarProps {
 export function Navbar({ activeTab, onTabChange, stats }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const navItems: { id: NavTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: "workspace", label: "Document Workspace", icon: FileText },
-    { id: "copilot", label: "ClauseLens Copilot", icon: Search },
-    { id: "diff", label: "Contract Diff Studio", icon: GitCompare },
-    { id: "observatory", label: "Ragas Quality Hub", icon: BarChart3 },
+  const navItems: {
+    id: NavTab;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }[] = [
+    { id: "copilot", label: "Copilot", icon: Search },
+    { id: "workspace", label: "Documents", icon: FileText },
+    { id: "diff", label: "Compare", icon: GitCompare },
+    { id: "observatory", label: "Evaluation", icon: BarChart3 },
   ];
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-slate-800 bg-slate-950/80 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Brand Logo */}
+    <header className="sticky top-0 z-40 w-full border-b border-zinc-200/80 bg-white/85 backdrop-blur-md">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+        {/* Brand Identity */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-sky-400 flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white font-bold text-lg">
-            CL
+          <div className="w-8 h-8 rounded-lg bg-zinc-900 flex items-center justify-center text-white shadow-xs">
+            <Scale className="w-4 h-4 stroke-[2]" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-lg tracking-tight text-white">ClauseLens</span>
-              <span className="text-[10px] font-semibold uppercase tracking-wider bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-500/20">
-                Enterprise RAG
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 hidden sm:block">
-              Docling Layout Intelligence &bull; RRF &bull; Cross-Encoder
-            </p>
+          <div className="flex items-center gap-2.5">
+            <span className="font-semibold text-[15px] tracking-tight text-zinc-900">
+              ClauseLens
+            </span>
+            <span className="hidden sm:inline-flex items-center text-[11px] font-medium text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded-md border border-zinc-200/70">
+              v1.0
+            </span>
           </div>
         </div>
 
-        {/* Desktop Navigation Tabs */}
-        <nav className="hidden md:flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800">
+        {/* Center Minimalist Pill Navigation */}
+        <nav className="hidden md:flex items-center gap-1 bg-zinc-100/80 p-1 rounded-lg border border-zinc-200/60">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -61,43 +61,60 @@ export function Navbar({ activeTab, onTabChange, stats }: NavbarProps) {
               <button
                 key={item.id}
                 onClick={() => onTabChange(item.id)}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
                   isActive
-                    ? "bg-indigo-600 text-white shadow-sm shadow-indigo-600/30"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                    ? "bg-white text-zinc-900 shadow-subtle border border-zinc-200/60"
+                    : "text-zinc-600 hover:text-zinc-900 hover:bg-white/50"
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-slate-400"}`} />
+                <Icon
+                  className={`w-3.5 h-3.5 ${
+                    isActive ? "text-zinc-900" : "text-zinc-400"
+                  }`}
+                />
                 <span>{item.label}</span>
               </button>
             );
           })}
         </nav>
 
-        {/* Live Index Status Badge */}
-        <div className="hidden lg:flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs text-slate-300">
-            <Database className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+        {/* Right Dual-Index Status Pill */}
+        <div className="hidden lg:flex items-center gap-2">
+          <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-zinc-50 border border-zinc-200/80 text-[11px] text-zinc-600">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
             <span>
-              <strong className="text-white font-mono">{stats?.dense_count ?? 6}</strong> Vectors &bull;{" "}
-              <strong className="text-white font-mono">{stats?.sparse_count ?? 6}</strong> BM25 Chunks
+              <strong className="font-mono font-semibold text-zinc-900">
+                {stats?.dense_count ?? 6}
+              </strong>{" "}
+              vectors
+            </span>
+            <span className="text-zinc-300">&bull;</span>
+            <span>
+              <strong className="font-mono font-semibold text-zinc-900">
+                {stats?.sparse_count ?? 6}
+              </strong>{" "}
+              BM25
             </span>
           </div>
         </div>
 
-        {/* Mobile Hamburger Button */}
+        {/* Mobile Menu Trigger */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
-          aria-label="Toggle mobile menu"
+          className="md:hidden p-1.5 rounded-lg border border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50"
+          aria-label="Toggle navigation menu"
         >
-          {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          {mobileMenuOpen ? (
+            <X className="w-4 h-4" />
+          ) : (
+            <Menu className="w-4 h-4" />
+          )}
         </button>
       </div>
 
-      {/* Mobile Menu Dropdown */}
+      {/* Mobile Dropdown */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-b border-slate-800 bg-slate-950 p-4 space-y-2 animate-in slide-in-from-top">
+        <div className="md:hidden border-b border-zinc-200 bg-white px-4 py-3 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -108,10 +125,10 @@ export function Navbar({ activeTab, onTabChange, stats }: NavbarProps) {
                   onTabChange(item.id);
                   setMobileMenuOpen(false);
                 }}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium ${
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium ${
                   isActive
-                    ? "bg-indigo-600 text-white"
-                    : "text-slate-300 hover:bg-slate-900"
+                    ? "bg-zinc-900 text-white"
+                    : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -124,4 +141,3 @@ export function Navbar({ activeTab, onTabChange, stats }: NavbarProps) {
     </header>
   );
 }
-

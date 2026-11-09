@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ClauseLens | Enterprise Document Intelligence & Contract Analysis",
+  title: "ClauseLens — Document Intelligence & Contract Analysis",
   description:
-    "Production-grade layout-aware contract analysis powered by Docling, Hybrid RRF, Cross-Encoder Reranking, and Ragas automated evaluation.",
+    "Production-grade layout-aware contract intelligence powered by Docling, Hybrid RRF, Cross-Encoder Reranking, and Ragas automated evaluation.",
 };
 
 export default function RootLayout({
@@ -13,14 +13,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body
         suppressHydrationWarning
-        className="min-h-screen bg-slate-950 text-slate-100 flex flex-col antialiased selection:bg-indigo-500 selection:text-white"
+        className="min-h-screen bg-[#FAFAFA] text-zinc-900 flex flex-col antialiased selection:bg-zinc-900 selection:text-white"
       >
         {children}
       </body>
     </html>
   );
 }
-

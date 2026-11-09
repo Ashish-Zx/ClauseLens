@@ -3,53 +3,59 @@
 @tailwind utilities;
 
 :root {
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  /* Theme tokens */
-  --bg-primary: #020617;
-  --bg-surface: #0f172a;
-  --bg-elevated: #1e293b;
-  --border-subtle: #334155;
-  --border-focus: #6366f1;
+  /* Minimalist Light Theme Palette */
+  --bg-primary: #FAFAFA;
+  --bg-surface: #FFFFFF;
+  --bg-subtle: #F4F4F5;
+  --border-subtle: #E4E4E7;
+  --border-strong: #D4D4D8;
+  --border-focus: #18181B;
 
-  --accent-primary: #6366f1;
-  --accent-primary-hover: #4f46e5;
-  --accent-secondary: #0ea5e9;
-  --accent-success: #10b981;
-  --accent-warning: #f59e0b;
+  --text-primary: #09090B;
+  --text-secondary: #52525B;
+  --text-muted: #71717A;
+
+  --accent-primary: #18181B;
+  --accent-primary-hover: #27272A;
+  --accent-indigo: #4F46E5;
+  --accent-emerald: #059669;
+  --accent-amber: #D97706;
 }
 
+html,
 body {
   background-color: var(--bg-primary);
-  color: #f8fafc;
+  color: var(--text-primary);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-/* Custom scrollbars */
+/* Minimalist Light Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #090d16;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #232d3f;
+  background: #D4D4D8;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3b4860;
+  background: #A1A1AA;
 }
 
-/* Accessible focus visible ring */
+/* Accessible focus ring */
 *:focus-visible {
   outline: 2px solid var(--border-focus);
   outline-offset: 2px;
 }
-
