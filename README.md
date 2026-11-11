@@ -18,6 +18,22 @@
 
 ---
 
+## Screenshots
+
+**Standard mode — grounded Q&A** with inline citations `[1]`, `[2]` and clickable source provenance.
+
+![Standard view](docs/screenshots/home-standard.png)
+
+**Developer mode — retrieval telemetry** exposes Dense / BM25 / RRF / Rerank scores and end-to-end latency for every answer.
+
+![Developer telemetry](docs/screenshots/developer-telemetry.png)
+
+**Developer mode — explainability drawer** walks the full multi-stage ranking pipeline (Dense → BM25 → RRF → Cross-Encoder Rerank) for a single chunk.
+
+![Explainability drawer](docs/screenshots/developer-explainability-drawer.png)
+
+---
+
 ## Architecture
 
 ```text
