@@ -16,10 +16,18 @@ ENV/
 *.pem
 *.key
 
+# Development / Management Docs (Personal working notes)
+PROGRESS.md
+SKILL.md
+blueprint.md
+evaluation_report.md
+evaluation_results.json
+
 # Data & Persistence Directories (Keep structure via .gitkeep)
 backend/data/indices/chroma/
 backend/data/indices/bm25/
 backend/data/processed/
+backend/data/raw/
 !backend/data/raw/.gitkeep
 !backend/data/processed/.gitkeep
 !backend/data/indices/.gitkeep
@@ -44,6 +52,7 @@ node_modules/
 out/
 build/
 dist/
+*.tsbuildinfo
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

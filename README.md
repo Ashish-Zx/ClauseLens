@@ -1,183 +1,179 @@
-# ClauseLens: Production-Grade RAG Pipeline with Document Intelligence
+# ClauseLens
 
-> **Enterprise Contract & Policy Intelligence Platform**  
-> Powered by **Docling** Layout Parsing, **ChromaDB + BM25** Dual Indexing, **Reciprocal Rank Fusion (RRF)**, **Cross-Encoder Reranking**, **Grounded Generation with Bounding-Box Citations**, and **Ragas** Automated CI Quality Gating.
+**Enterprise contract & policy intelligence.** Ask plain-language questions across your agreements and receive grounded answers with pinpoint citations — powered by a production-grade hybrid RAG pipeline.
+
+<p align="center">
+  <code>Docling</code> · <code>ChromaDB + BM25</code> · <code>RRF</code> · <code>Cross-Encoder Reranking</code> · <code>Grounded Generation</code> · <code>Ragas CI</code>
+</p>
 
 ---
 
-## 🏛️ System Architecture
+## Features
+
+- **Document intelligence** — Parses scanned PDFs with Docling layout analysis, OCR, and table reconstruction (TableFormer).
+- **Hybrid retrieval** — Combines semantic (ChromaDB) and lexical (BM25) search, fused with Reciprocal Rank Fusion (RRF) and refined by a cross-encoder reranker.
+- **Grounded answers** — Every response carries inline citations `[1]`, `[2]` with verbatim quotes and page-level bounding-box coordinates.
+- **Role-aware UI** — A clean, minimalist interface with a **Standard / Developer** toggle: Standard users see only core workflows; Developer reveals retrieval telemetry, contract comparison, and evaluation dashboards.
+- **Automated quality gating** — Ragas evaluation suite runs in CI on a golden benchmark dataset.
+
+---
+
+## Architecture
 
 ```text
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                        1. INGESTION & DOCLING PIPELINE                       │
-└──────────────────────────────────────────────────────────────────────────────┘
-  [Raw PDFs / Scanned Contracts / Policies]
-                     │
-                     ▼
-        ┌─────────────────────────┐
-        │   Docling Converter     │ ──► Layout Analysis, OCR, Table Structure (TableFormer ACCURATE)
-        └─────────────────────────┘
-                     │
-                     ▼
-        ┌─────────────────────────┐
-        │   Contextual Chunker    │ ──► Section Splits + Breadcrumb Lineage Prepending
-        └─────────────────────────┘     [Document: MSA.pdf | Page: 4] [Section: Article 11 > 11.4]
-                     │
-         ┌───────────┴───────────┐
-         ▼                       ▼
-┌─────────────────┐     ┌─────────────────┐
-│  Dense Vector   │     │  Sparse Keyword │
-│  Index (Chroma) │     │   Index (BM25)  │
-└────────┬────────┘     └────────┬────────┘
-         │                       │
-┌────────┴───────────────────────┴─────────────────────────────────────────────┐
-│                    2. HYBRID RETRIEVAL & RERANKING ENGINE                    │
-└──────────────────────────────────────────────────────────────────────────────┘
-         │                       │
-         ▼                       ▼
-  [Top-25 Semantic]       [Top-25 Lexical]
-         │                       │
-         └───────────┬───────────┘
-                     ▼
-        ┌─────────────────────────┐
-        │ Reciprocal Rank Fusion  │ ──► Exact 1-indexed formula: RRF(d) = Σ 1 / (60 + rank_m(d))
-        │         (RRF)           │
-        └─────────────────────────┘
-                     │ (Top-15 Fused Candidates)
-                     ▼
-        ┌─────────────────────────┐
-        │ Cross-Encoder Reranker  │ ──► Joint Query-Chunk Scoring (ms-marco-MiniLM-L-6-v2)
-        │                         │     Selects Final Top-5 Context Chunks
-        └─────────────────────────┘
-                     │
-┌────────────────────┴─────────────────────────────────────────────────────────┐
-│                  3. GROUNDED GENERATION & RAGAS EVALUATION                   │
-└──────────────────────────────────────────────────────────────────────────────┘
-                     │
-                     ▼
-        ┌─────────────────────────┐
-        │  Grounded LLM Synthesis │ ──► Inline Citations [1], [2] + Bounding Box Coordinates (l, t, r, b)
-        └─────────────────────────┘
-                     │
-         ┌───────────┴───────────┐
-         ▼                       ▼
-┌─────────────────┐     ┌─────────────────────────────────────────┐
-│ Next.js 15 UI   │     │         Ragas Evaluation Suite          │
-│ (PDF Viewer +   │     │ • Context Precision (0.880 >= 0.85)     │
-│  Diff Studio)   │     │ • Context Recall    (0.910 >= 0.85)     │
-│                 │     │ • Faithfulness      (0.950 >= 0.92)     │
-│                 │     │ • Answer Relevancy  (0.890 >= 0.85)     │
-└─────────────────┘     └─────────────────────────────────────────┘
+            ┌──────────────────────────────────────────────────────────┐
+            │                 1. INGESTION & PARSING                    │
+            └──────────────────────────────────────────────────────────┘
+               PDFs / scanned contracts / policies
+                         │  Docling (layout + OCR + table extraction)
+                         ▼
+            Contextual chunker (section splits + breadcrumb lineage)
+                         │
+              ┌──────────┴──────────┐
+              ▼                     ▼
+       ┌────────────┐       ┌────────────┐
+       │  ChromaDB  │       │   BM25     │
+       │ (dense)    │       │ (sparse)   │
+       └────────────┘       └────────────┘
+              │                     │
+              └──────────┬──────────┘
+                         ▼
+            Reciprocal Rank Fusion (RRF)
+                         │  cross-encoder reranker → top-5 context
+                         ▼
+            ┌──────────────────────────────────────────────────────────┐
+            │             2. GROUNDED GENERATION                        │
+            └──────────────────────────────────────────────────────────┘
+            Grounded LLM synthesis → inline citations + bounding boxes
+                         │
+              ┌──────────┴──────────┐
+              ▼                     ▼
+       ┌────────────┐       ┌────────────┐
+       │ Next.js UI │       │  Ragas    │
+       │ (Standard/ │       │ evaluation │
+       │  Developer)│       │  + CI gate │
+       └────────────┘       └────────────┘
 ```
 
 ---
 
-## ⚡ Quickstart Guide
+## Tech Stack
 
-### 1. Backend Setup (Python 3.12 + uv)
+| Layer | Technology |
+| :--- | :--- |
+| Frontend | Next.js 15 (App Router), React 19, Tailwind CSS, TypeScript |
+| Backend | FastAPI, Pydantic v2, uvicorn |
+| Parsing | Docling (layout, OCR, TableFormer) |
+| Retrieval | ChromaDB (dense), BM25 (sparse), RRF fusion, cross-encoder reranking |
+| Generation | Gemini / OpenAI grounded synthesis with citation hydration |
+| Evaluation | Ragas on a golden benchmark dataset, CI-gated |
+
+---
+
+## Getting Started
+
+### Backend (Python 3.12 + uv)
 
 ```bash
-# 1. Create and activate Python 3.12 virtual environment
 uv venv .venv --python python3.12
 source .venv/bin/activate
-
-# 2. Install pinned dependencies with uv
 uv pip install -r backend/requirements.txt
 
-# 3. Configure environment variables (optional: add Gemini or OpenAI API key)
-cp .env.example .env
+cp .env.example .env            # optional: set Gemini / OpenAI API key
 
-# 4. Ingest sample contracts into persistent ChromaDB & BM25
-python backend/data/ingest_sample.py
+python backend/data/ingest_sample.py   # index sample contracts
+pytest backend/tests/ -v               # run test suite
+python -m backend.src.evaluation.ragas_runner  # run evaluation
 
-# 5. Run the full test suite (16/16 Unit Tests)
-pytest backend/tests/ -v
-
-# 6. Run the Ragas benchmark evaluation suite
-python -m backend.src.evaluation.ragas_runner
-
-# 7. Start the FastAPI REST server
 uvicorn backend.src.api.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Interactive API documentation will be available at: `http://localhost:8000/docs`
+Interactive API docs: `http://localhost:8000/docs`
 
----
-
-### 2. Frontend Setup (Next.js 15 + Tailwind CSS)
+### Frontend (Next.js)
 
 ```bash
 cd frontend
-
-# Install frontend dependencies
 npm install
-
-# Start development server
 npm run dev
 ```
 
-Visit `http://localhost:3000` to interact with the ClauseLens interface:
-- **Document Workspace**: Upload PDFs, inspect Docling layout trees and Markdown tables.
-- **ClauseLens Copilot**: Ask contract queries, inspect inline citations `[1]`, and open the slide-out **Retrieval Explainability Drawer** (Dense vs BM25 vs RRF vs Cross-Encoder scores).
-- **Contract Diff Studio**: Generate side-by-side comparison tables across agreements.
-- **Ragas Observatory**: Review real-time quality metric cards and benchmark diagnostics.
+Open `http://localhost:3000`.
 
 ---
 
-## 📊 Ragas Evaluation Benchmark Results
+## UI Modes
 
-The pipeline is benchmarked against `golden_dataset.json` with automated CI gating:
+The interface ships with a **Standard / Developer** toggle (top-right of the navigation bar). Your choice is remembered across reloads.
 
-| Metric | Measured Score | Target Threshold | CI Gate Status |
+| View | What you see |
+| :--- | :--- |
+| **Standard** | Core workflows only: ask questions + read sourced answers, preview source documents, and upload contracts. No scores or internals. |
+| **Developer** | Everything in Standard, plus contract comparison, the Ragas evaluation dashboard, retrieval telemetry (Dense / BM25 / Rerank scores), latency figures, and the explainability drawer. |
+
+---
+
+## API
+
+Base URL: `http://localhost:8000/api`
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/documents/upload` | Upload & parse a PDF, then dual-index it |
+| `GET` | `/documents/stats` | Dense / sparse index statistics |
+| `GET` | `/documents/{chunk_id}` | Inspect a single chunk |
+| `POST` | `/query/search` | Hybrid retrieval with scored chunks |
+| `POST` | `/query/ask` | Grounded Q&A with citations |
+| `POST` | `/query/compare` | Cross-agreement clause comparison |
+| `GET` | `/health` | Service health check |
+
+---
+
+## Evaluation
+
+The pipeline is validated against `data/evaluation/golden_dataset.json` with automated CI gating:
+
+| Metric | Score | Target | Status |
 | :--- | :---: | :---: | :---: |
-| **Context Precision** | **`0.880`** | $\ge 0.85$ | **PASS ✅** |
-| **Context Recall** | **`0.910`** | $\ge 0.85$ | **PASS ✅** |
-| **Faithfulness** | **`0.950`** | $\ge 0.92$ | **PASS ✅** |
-| **Answer Relevancy** | **`0.890`** | $\ge 0.85$ | **PASS ✅** |
+| Context Precision | `0.880` | ≥ 0.85 | ✅ PASS |
+| Context Recall | `0.910` | ≥ 0.85 | ✅ PASS |
+| Faithfulness | `0.950` | ≥ 0.92 | ✅ PASS |
+| Answer Relevancy | `0.890` | ≥ 0.85 | ✅ PASS |
 
-Scorecards are automatically exported to [`evaluation_report.md`](file:///Users/ashishkumarshah/Documents/CampusXaiengineering/Project/ClauseLens/evaluation_report.md) and [`evaluation_results.json`](file:///Users/ashishkumarshah/Documents/CampusXaiengineering/Project/ClauseLens/evaluation_results.json).
+Full scorecards: [`evaluation_report.md`](evaluation_report.md) · [`evaluation_results.json`](evaluation_results.json)
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```text
 ClauseLens/
-├── blueprint.md                        # Architecture blueprint
-├── SKILL.md                            # Production engineering mandates
-├── PROGRESS.md                         # Milestone implementation tracker
-├── README.md                           # Documentation & quickstart
-├── .env.example                        # Environment variables template
-├── evaluation_report.md                # Generated Ragas scorecard
-├── evaluation_results.json             # Evaluation telemetry JSON
-│
-├── .github/
-│   └── workflows/
-│       └── ragas_eval_ci.yml           # Automated GitHub Actions CI quality gate
-│
-├── backend/                            # Python 3.12 Backend
-│   ├── requirements.txt                # Pinned dependencies
-│   ├── data/                           # Indices, golden evaluation dataset, samples
+├── backend/
 │   ├── src/
-│   │   ├── config.py                   # Pydantic v2 settings
-│   │   ├── exceptions.py               # Custom domain exceptions
-│   │   ├── schemas/                    # DocumentChunk, Citation, RAGResponse models
-│   │   ├── ingestion/                  # Docling parser & contextual breadcrumb chunker
-│   │   ├── indexing/                   # ChromaDB vector store, BM25Plus, IndexManager
-│   │   ├── retrieval/                  # RRF algorithm, Cross-Encoder reranker, HybridRetriever
-│   │   ├── generation/                 # Grounded prompts & citation hydration engine
-│   │   ├── evaluation/                 # Ragas runner & golden benchmark validator
-│   │   └── api/                        # FastAPI main & REST routers (/documents, /query)
-│   └── tests/                          # 16 Pytest unit & integration tests
-│
-└── frontend/                           # Next.js 15 App Router UI
-    ├── package.json
-    ├── tsconfig.json
-    ├── tailwind.config.ts
-    └── src/
-        ├── types/                      # Strict TypeScript data contracts
-        ├── lib/api.ts                  # Typed FastAPI client
-        ├── components/                 # PDF BoundingBox Overlay, CitationBadge, TelemetryDrawer, Navbar
-        └── app/                        # Master Dashboard (Workspace, Copilot, Diff, Observatory)
+│   │   ├── api/            # FastAPI app + routers (/documents, /query)
+│   │   ├── ingestion/      # Docling parser, contextual chunker
+│   │   ├── indexing/       # ChromaDB, BM25, index manager
+│   │   ├── retrieval/      # RRF, reranker, hybrid retriever
+│   │   ├── generation/     # Grounded prompts & citation hydration
+│   │   ├── evaluation/     # Ragas runner & golden benchmark
+│   │   ├── schemas/        # Request/response models
+│   │   ├── config.py
+│   │   └── exceptions.py
+│   ├── data/               # Samples, indices, golden dataset
+│   └── tests/
+├── frontend/
+│   └── src/
+│       ├── app/            # Dashboard (Copilot, Workspace, Compare, Evaluation)
+│       ├── components/     # Navbar, CitationBadge, TelemetryDrawer, PDF overlay
+│       ├── lib/            # Typed API client
+│       └── types/          # Strict TypeScript contracts
+├── .github/workflows/      # Ragas CI quality gate
+├── .env.example
+└── evaluation_report.md
 ```
 
+---
+
+## License
+
+This project is for internal / educational use. See repository history for contributors.
