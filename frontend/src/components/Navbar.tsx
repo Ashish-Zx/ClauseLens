@@ -14,13 +14,23 @@ import {
 
 export type NavTab = "copilot" | "workspace" | "diff" | "observatory";
 
+export type UserMode = "standard" | "developer";
+
 interface NavbarProps {
   activeTab: NavTab;
   onTabChange: (tab: NavTab) => void;
   stats: IndexStats | null;
+  mode: UserMode;
+  onModeChange: (mode: UserMode) => void;
 }
 
-export function Navbar({ activeTab, onTabChange, stats }: NavbarProps) {
+export function Navbar({
+  activeTab,
+  onTabChange,
+  stats,
+  mode,
+  onModeChange,
+}: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems: {
@@ -33,6 +43,13 @@ export function Navbar({ activeTab, onTabChange, stats }: NavbarProps) {
     { id: "diff", label: "Compare", icon: GitCompare },
     { id: "observatory", label: "Evaluation", icon: BarChart3 },
   ];
+
+  const visibleItems =
+    mode === "developer"
+      ? navItems
+      : navItems.filter(
+          (item) => item.id === "copilot" || item.id === "workspace"
+        );
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-zinc-200/80 bg-white/85 backdrop-blur-md">
@@ -54,7 +71,7 @@ export function Navbar({ activeTab, onTabChange, stats }: NavbarProps) {
 
         {/* Center Minimalist Pill Navigation */}
         <nav className="hidden md:flex items-center gap-1 bg-zinc-100/80 p-1 rounded-lg border border-zinc-200/60">
-          {navItems.map((item) => {
+          {visibleItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
             return (
@@ -78,24 +95,43 @@ export function Navbar({ activeTab, onTabChange, stats }: NavbarProps) {
           })}
         </nav>
 
-        {/* Right Dual-Index Status Pill */}
-        <div className="hidden lg:flex items-center gap-2">
-          <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-zinc-50 border border-zinc-200/80 text-[11px] text-zinc-600">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span>
-              <strong className="font-mono font-semibold text-zinc-900">
-                {stats?.dense_count ?? 6}
-              </strong>{" "}
-              vectors
-            </span>
-            <span className="text-zinc-300">&bull;</span>
-            <span>
-              <strong className="font-mono font-semibold text-zinc-900">
-                {stats?.sparse_count ?? 6}
-              </strong>{" "}
-              BM25
-            </span>
+        {/* Right Controls: Role Toggle + Developer Status */}
+        <div className="flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-0.5 bg-zinc-100/80 p-0.5 rounded-lg border border-zinc-200/60">
+            {(["standard", "developer"] as UserMode[]).map((m) => (
+              <button
+                key={m}
+                onClick={() => onModeChange(m)}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-medium capitalize transition cursor-pointer ${
+                  mode === m
+                    ? "bg-white text-zinc-900 shadow-subtle border border-zinc-200/60"
+                    : "text-zinc-500 hover:text-zinc-900"
+                }`}
+              >
+                {m}
+              </button>
+            ))}
           </div>
+          {mode === "developer" && (
+            <div className="hidden lg:flex items-center gap-2">
+              <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-zinc-50 border border-zinc-200/80 text-[11px] text-zinc-600">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span>
+                  <strong className="font-mono font-semibold text-zinc-900">
+                    {stats?.dense_count ?? 6}
+                  </strong>{" "}
+                  vectors
+                </span>
+                <span className="text-zinc-300">&bull;</span>
+                <span>
+                  <strong className="font-mono font-semibold text-zinc-900">
+                    {stats?.sparse_count ?? 6}
+                  </strong>{" "}
+                  BM25
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Mobile Menu Trigger */}
@@ -115,7 +151,7 @@ export function Navbar({ activeTab, onTabChange, stats }: NavbarProps) {
       {/* Mobile Dropdown */}
       {mobileMenuOpen && (
         <div className="md:hidden border-b border-zinc-200 bg-white px-4 py-3 space-y-1">
-          {navItems.map((item) => {
+          {visibleItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
             return (
@@ -136,6 +172,28 @@ export function Navbar({ activeTab, onTabChange, stats }: NavbarProps) {
               </button>
             );
           })}
+
+          <div className="pt-2 mt-1 border-t border-zinc-100 flex items-center gap-1">
+            <span className="text-[11px] text-zinc-400 font-medium mr-1">
+              View:
+            </span>
+            {(["standard", "developer"] as UserMode[]).map((m) => (
+              <button
+                key={m}
+                onClick={() => {
+                  onModeChange(m);
+                  setMobileMenuOpen(false);
+                }}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-medium capitalize transition cursor-pointer ${
+                  mode === m
+                    ? "bg-zinc-900 text-white"
+                    : "text-zinc-600 hover:bg-zinc-50"
+                }`}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </header>

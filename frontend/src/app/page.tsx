@@ -10,7 +10,7 @@ import {
   ScoredChunk,
 } from "@/types";
 import { api } from "@/lib/api";
-import { Navbar, NavTab } from "@/components/Navbar";
+import { Navbar, NavTab, UserMode } from "@/components/Navbar";
 import { CitationBadge } from "@/components/CitationBadge";
 import { TelemetryDrawer } from "@/components/TelemetryDrawer";
 import { PDFBoundingBoxOverlay } from "@/components/PDFBoundingBoxOverlay";
@@ -195,8 +195,28 @@ const DEFAULT_COMPARISON_RESPONSE: RAGResponse = {
   total_latency_ms: 198,
 };
 
+function getInitialMode(): UserMode {
+  if (typeof window === "undefined") return "standard";
+  return window.localStorage.getItem("clauselens-mode") === "developer"
+    ? "developer"
+    : "standard";
+}
+
 export default function Home() {
   const [activeTab, setActiveTab] = useState<NavTab>("copilot");
+  const [mode, setMode] = useState<UserMode>(getInitialMode);
+  useEffect(() => {
+    window.localStorage.setItem("clauselens-mode", mode);
+  }, [mode]);
+  useEffect(() => {
+    if (
+      mode === "standard" &&
+      activeTab !== "copilot" &&
+      activeTab !== "workspace"
+    ) {
+      setActiveTab("copilot");
+    }
+  }, [mode, activeTab]);
   const [stats, setStats] = useState<IndexStats | null>({
     dense_count: 6,
     sparse_count: 6,
@@ -412,7 +432,13 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#FAFAFA] text-zinc-900">
-      <Navbar activeTab={activeTab} onTabChange={setActiveTab} stats={stats} />
+      <Navbar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        stats={stats}
+        mode={mode}
+        onModeChange={setMode}
+      />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* ============================================================== */}
@@ -431,9 +457,11 @@ export default function Home() {
                   >
                     Contract &amp; Policy Inquiry
                   </label>
-                  <span className="text-[11px] text-zinc-400 font-mono">
-                    Dense + BM25 + RRF (k=60)
-                  </span>
+                  {mode === "developer" && (
+                    <span className="text-[11px] text-zinc-400 font-mono">
+                      Dense + BM25 + RRF (k=60)
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex gap-2">
@@ -502,10 +530,12 @@ export default function Home() {
                         Verified Synthesis
                       </h2>
                     </div>
-                    <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 font-mono">
-                      <Clock className="w-3 h-3" />
-                      <span>{ragResponse.total_latency_ms.toFixed(0)} ms</span>
-                    </div>
+                    {mode === "developer" && (
+                      <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 font-mono">
+                        <Clock className="w-3 h-3" />
+                        <span>{ragResponse.total_latency_ms.toFixed(0)} ms</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Clean Formatted Markdown & Table Output */}
@@ -546,9 +576,11 @@ export default function Home() {
                         Retrieved Context Chunks ({scoredChunks.length})
                       </h3>
                     </div>
-                    <span className="text-[11px] text-zinc-400">
-                      Click chunk to preview &bull; Inspect RRF telemetry
-                    </span>
+                    {mode === "developer" && (
+                      <span className="text-[11px] text-zinc-400">
+                        Click chunk to preview &bull; Inspect RRF telemetry
+                      </span>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -585,30 +617,32 @@ export default function Home() {
                             </div>
 
                             {/* Minimalist Rank Telemetry Pills */}
-                            <div className="flex items-center gap-1.5 text-[11px] font-mono">
-                              <span className="bg-zinc-50 text-zinc-600 px-2 py-0.5 rounded border border-zinc-200/80">
-                                Dense #{chunk.telemetry.dense_rank ?? "—"}
-                              </span>
-                              <span className="bg-zinc-50 text-zinc-600 px-2 py-0.5 rounded border border-zinc-200/80">
-                                BM25 #{chunk.telemetry.bm25_rank ?? "—"}
-                              </span>
-                              <span className="bg-emerald-50 text-emerald-800 font-medium px-2 py-0.5 rounded border border-emerald-200/80">
-                                Rerank:{" "}
-                                {chunk.telemetry.reranker_score?.toFixed(2) ??
-                                  "—"}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openTelemetry(chunk);
-                                }}
-                                className="ml-1 p-1 rounded hover:bg-zinc-100 text-zinc-500 hover:text-zinc-900 border border-transparent hover:border-zinc-200 transition"
-                                title="Open RRF & Cross-Encoder Explainability Drawer"
-                              >
-                                <SlidersHorizontal className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
+                            {mode === "developer" && (
+                              <div className="flex items-center gap-1.5 text-[11px] font-mono">
+                                <span className="bg-zinc-50 text-zinc-600 px-2 py-0.5 rounded border border-zinc-200/80">
+                                  Dense #{chunk.telemetry.dense_rank ?? "—"}
+                                </span>
+                                <span className="bg-zinc-50 text-zinc-600 px-2 py-0.5 rounded border border-zinc-200/80">
+                                  BM25 #{chunk.telemetry.bm25_rank ?? "—"}
+                                </span>
+                                <span className="bg-emerald-50 text-emerald-800 font-medium px-2 py-0.5 rounded border border-emerald-200/80">
+                                  Rerank:{" "}
+                                  {chunk.telemetry.reranker_score?.toFixed(2) ??
+                                    "—"}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openTelemetry(chunk);
+                                  }}
+                                  className="ml-1 p-1 rounded hover:bg-zinc-100 text-zinc-500 hover:text-zinc-900 border border-transparent hover:border-zinc-200 transition"
+                                  title="Open RRF & Cross-Encoder Explainability Drawer"
+                                >
+                                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )}
                           </div>
 
                           <div className="text-[11px] font-medium text-zinc-500 mb-1.5 truncate">
@@ -809,7 +843,7 @@ export default function Home() {
         {/* ============================================================== */}
         {/* TAB 3: CONTRACT DIFF & MATRIX STUDIO                           */}
         {/* ============================================================== */}
-        {activeTab === "diff" && (
+        {mode === "developer" && activeTab === "diff" && (
           <div className="space-y-6">
             <div className="bg-white border border-zinc-200/90 rounded-xl p-5 shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
@@ -888,7 +922,7 @@ export default function Home() {
         {/* ============================================================== */}
         {/* TAB 4: RAGAS QUALITY & CI OBSERVATORY                          */}
         {/* ============================================================== */}
-        {activeTab === "observatory" && (
+        {mode === "developer" && activeTab === "observatory" && (
           <div className="space-y-6">
             {/* 4 Core Ragas Metric Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
